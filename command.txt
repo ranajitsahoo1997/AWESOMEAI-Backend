@@ -1,0 +1,153 @@
+python3 -m venv venv (to create virtual environment)
+
+pip install django
+
+django-admin startproject AwesomeAI . (Creating Project)
+
+python3 manage.py startapp users (creating users application)
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'users',  # Custom app for user management
+]
+
+
+Build a custom user model
+
+from django.db import models
+from django.contrib.auth.models import AbstractUser
+
+# Create your models here.
+
+class ExtendedUser(AbstractUser):
+    """
+    Custom user model that extends the default Django user model.
+    """
+    # Add any additional fields you want to include in your custom user model
+    email = models.EmailField(blank=False,unique = True, max_length = 255,verbose_name="Email")
+    
+    USERNAME_FIELD = 'username'
+    EMAIL_FIELD = 'email'
+
+pip install psycopg2 (for connecting to postgresqldatabase)
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'awesomeai',
+        'USER': 'postgres',
+        'PASSWORD': 'postgres',  # Replace with your actual password
+        'HOST': 'localhost',
+    }
+}
+AUTH_USER_MODEL = 'users.ExtendedUser'
+# Email settings
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+
+#GRAPHQL IN DJANGO
+pip install graphene-django==2.13.0
+#GRAPHQL JWT IN DJANGO
+pip install django-graphql-jwt==0.3.1
+
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'users',
+    'graphene_django',
+    'graphql_jwt.refresh_token.apps.RefreshTokenConfig',
+]
+
+pip install "django<4"
+
+python3 manage.py makemigrations
+python3 manage.py migrate
+
+
+python3 manage.py createsuperuser
+
+pip install django-graphql-auth==0.3.15
+ pip install "django-filter<=23.5"
+ pip install "PyJWT<2"
+
+
+ to allow cross origin
+ pip install django-cors-headers
+
+pip install py3dns
+pip install validate_email
+
+pip install pikepdf // it is used to provide password to a certificate
+
+digital signin to a pdf
+-----------------------
+
+pip install pyhanko
+
+mkdir certs
+cd certs
+
+openssl req -x509 -newkey rsa:2048 -keyout private_key.pem -out certificate.pem -days 365 -nodes -subj "/CN=RanajitSahoo1997/OU=SoftwareEngineeer/O=RedintegroConsultingServices/L=BANGALORE/C=IN"
+
+it will create
+
+project_folder/
+├── certs/
+│   ├── private_key.pem
+│   ├── certificate.pem
+
+
+create certificate.pfx file
+openssl genrsa -out private.key 2048
+openssl req -new -x509 -key private.key -out certificate.crt -days 365
+openssl pkcs12 -export \
+  -out certificate.pfx \
+  -inkey private.key \
+  -in certificate.crt
+
+Provider	TSA URL
+DigiCert (Test)	http://timestamp.digicert.com
+GlobalSign	http://timestamp.globalsign.com/scripts/timstamp.dll
+Sectigo	http://timestamp.sectigo.com
+RFC 3161 Test TSA	http://freetsa.org/tsr (FreeTSA, community-supported)
+E-Tugra	http://tsa.etugra.com.tr
+
+
+Step 1: Create a Root CA
+bash
+Copy
+Edit
+openssl genrsa -out rootCA.key 4096
+openssl req -x509 -new -nodes -key rootCA.key -sha256 -days 1024 -out rootCA.pem
+Step 2: Create your private key and CSR
+bash
+Copy
+Edit
+openssl genrsa -out user.key 2048
+openssl req -new -key user.key -out user.csr
+Step 3: Sign the CSR with your Root CA
+bash
+Copy
+Edit
+openssl x509 -req -in user.csr -CA rootCA.pem -CAkey rootCA.key -CAcreateserial -out user.crt -days 500 -sha256
+Step 4: Combine into .pfx
+bash
+Copy
+Edit
+openssl pkcs12 -export -out user.pfx -inkey user.key -in user.crt -certfile rootCA.pem
+Now you have a .pfx file signed by a CA (even though it's your own CA). You can use it with pyHanko, and just provide rootCA.pem as the trusted certificate when validating.
+
+
+
+
+
+
+pip install PyPDF2 langchain langchain-community

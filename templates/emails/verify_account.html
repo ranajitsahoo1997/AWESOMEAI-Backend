@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Verify Your Account</title>
+  <style>
+    body {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      background-color: #f5f7fa;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    }
+    .header {
+      text-align: center;
+      padding-bottom: 20px;
+    }
+    .header h1 {
+      color: #333333;
+    }
+    .content {
+      font-size: 16px;
+      color: #555555;
+      line-height: 1.6;
+    }
+    
+    a {
+      text-decoration: none;
+      color: #ffffff;
+    }
+    .footer {
+      text-align: center;
+      font-size: 12px;
+      color: #999999;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Welcome to Awesome AI 🎉</h1>
+    </div>
+    <div class="content">
+      <p>Hi {{ user.username|default:"there" }},</p>
+      <p>Thank you for signing up. To get started, please verify your account by clicking the button below.</p>
+      <p ><i><b>Your Veification code is</b></i></p>
+      <h1 style="letter-spacing: 7px; font-weight: bold; font-size: 50px; text-align: center; color: rebeccapurple;">{{code}}</h1>
+
+      <p style="text-align: center;">
+        <a href="{{ verification_link }}" class="button" style="background-color: rebeccapurple; padding: 12px 25px; border-radius: 5px; font-size: 16px; display: inline-block; color: white; text-decoration: none;">Verify My Account</a>
+      </p>
+
+      <p>If the button doesn’t work, you can copy and paste the following link into your browser:</p>
+      <p><a href="{{ verification_link }}" >{{ verification_link }}</a></p>
+
+      <p>If you didn’t create this account, you can safely ignore this email.</p>
+    </div>
+    <div class="footer">
+      &copy; {{ current_year }} Awesome AI. All rights reserved.
+    </div>
+  </div>
+</body>
+</html>
