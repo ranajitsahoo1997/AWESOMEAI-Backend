@@ -13,6 +13,7 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 
 def raw_text_to_json(data):
     splits = data.split("**")
+    print("splits",splits)
     c=0
     data_gen=[]
     topic={}

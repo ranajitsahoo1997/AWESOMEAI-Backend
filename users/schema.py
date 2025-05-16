@@ -74,6 +74,7 @@ class AuthMutaions(graphene.ObjectType):
     password_change = mutations.PasswordChange.Field()
     logout = mutations.RevokeToken.Field()
     verify_token = mutations.VerifyToken.Field()
+    
 
 class Query(QuestionQuery,QuizQuery,UserQuery, MeQuery, graphene.ObjectType):
     pass
