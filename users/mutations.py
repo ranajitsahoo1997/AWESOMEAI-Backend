@@ -21,6 +21,9 @@ from.models import ExtendedUser
 import base64
 from .utils.sign_creation_for_pdf import sign_create_for_pdf
 from .utils.create_digital_signed_pdf import sign_create_for_pdf
+from.utils.ChangeExtensionTextToPDF import txt_to_pdf
+from django.core.files import File
+import os
 
 # for encrypt a pdf
 from django.core.files.base import ContentFile
@@ -248,8 +251,22 @@ class CreateQuiz(graphene.Mutation):
             started_at=started_at,
             ended_at=ended_at
         )
-        input_path = quiz.source_file.path
         
+        input_path = ""
+        if quiz.source_file.path.endswith(".txt"):
+            filePath = quiz.source_file.path
+            pdfFilePath = filePath.rsplit(".",1)[0]+".pdf"
+            updated_input_path=txt_to_pdf(input_txt_path=filePath,output_pdf_path=pdfFilePath)
+            with open(updated_input_path, "rb") as f:
+                quiz.source_file.save(
+                    name=os.path.basename(updated_input_path),
+                    content=File(f),
+                    save=True  # Save the model after updating
+                )
+            input_path = quiz.source_file.path
+        else:
+            input_path = quiz.source_file.path
+        print(input_path)
         ## create signed pdf here
         output_buffer = sign_create_for_pdf(input_pdf_path=input_path,output_pdf_path="signed_file5.pdf")
         

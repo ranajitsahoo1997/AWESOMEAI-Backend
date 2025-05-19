@@ -151,3 +151,5 @@ Now you have a .pfx file signed by a CA (even though it's your own CA). You can 
 
 
 pip install PyPDF2 langchain langchain-community
+
+ pip install reportlab for convert text to pdf
