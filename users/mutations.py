@@ -15,7 +15,7 @@ from .utils.email import send_verification_code_email
 from django.utils import timezone
 from validate_email import validate_email
 from graphene_django.types import DjangoObjectType
-from users.models import Quiz
+from users.models import Resource
 from graphene_file_upload.scalars import Upload
 from.models import ExtendedUser
 import base64
@@ -207,9 +207,9 @@ class ActivateAccount(graphene.Mutation):
         return ActivateAccount(success=True, errors=[])
         
   
-class QuizType(DjangoObjectType):
+class ResourceType(DjangoObjectType):
     class Meta:
-        model = Quiz
+        model = Resource
         fields = "__all__"
         
     source_file_url= graphene.String()
@@ -222,10 +222,10 @@ class QuizType(DjangoObjectType):
         if self.ecrypted_src_file:
             return info.context.build_absolute_uri(self.ecrypted_src_file.url)
         
-class CreateQuiz(graphene.Mutation):
+class CreateResource(graphene.Mutation):
     success = graphene.Boolean()
     errors = graphene.List(graphene.String)
-    quiz = graphene.Field(QuizType)
+    resource = graphene.Field(ResourceType)
     
     class Arguments:
         name = graphene.String(required=True)
@@ -243,7 +243,7 @@ class CreateQuiz(graphene.Mutation):
         print(source_file)
         user = ExtendedUser.objects.get(id=userid[1])
         
-        quiz = Quiz.objects.create(
+        resource = Resource.objects.create(
             user=user,
             name=name,
             description=description,
@@ -253,19 +253,19 @@ class CreateQuiz(graphene.Mutation):
         )
         
         input_path = ""
-        if quiz.source_file.path.endswith(".txt"):
-            filePath = quiz.source_file.path
+        if resource.source_file.path.endswith(".txt"):
+            filePath = resource.source_file.path
             pdfFilePath = filePath.rsplit(".",1)[0]+".pdf"
             updated_input_path=txt_to_pdf(input_txt_path=filePath,output_pdf_path=pdfFilePath)
             with open(updated_input_path, "rb") as f:
-                quiz.source_file.save(
+                resource.source_file.save(
                     name=os.path.basename(updated_input_path),
                     content=File(f),
                     save=True  # Save the model after updating
                 )
-            input_path = quiz.source_file.path
+            input_path = resource.source_file.path
         else:
-            input_path = quiz.source_file.path
+            input_path = resource.source_file.path
         print(input_path)
         ## create signed pdf here
         output_buffer = sign_create_for_pdf(input_pdf_path=input_path,output_pdf_path="signed_file5.pdf")
@@ -273,16 +273,16 @@ class CreateQuiz(graphene.Mutation):
         
         
         # Save encrypted PDF to model
-        encrypted_src_filename = f"encrypted_{quiz.source_file.name.split('/')[-1]}"
-        quiz.ecrypted_src_file.save(encrypted_src_filename,ContentFile(output_buffer.getvalue()))
-        quiz.save()
+        encrypted_src_filename = f"encrypted_{resource.source_file.name.split('/')[-1]}"
+        resource.ecrypted_src_file.save(encrypted_src_filename,ContentFile(output_buffer.getvalue()))
+        resource.save()
         
         
         
-        return CreateQuiz(success=True,errors=[],quiz=quiz)
+        return CreateResource(success=True,errors=[],resource=resource)
 
 
-class UpdateQuiz(graphene.Mutation):
+class UpdateResource(graphene.Mutation):
     success = graphene.Boolean()
     errors = graphene.List(graphene.String)
 
@@ -294,21 +294,21 @@ class UpdateQuiz(graphene.Mutation):
 
     def mutate(self, info, id, name, description, source_file=None):
         try:
-            quiz = Quiz.objects.get(pk=id)
-            quiz.name = name
-            quiz.description = description
+            resource = Resource.objects.get(pk=id)
+            resource.name = name
+            resource.description = description
 
             if source_file:
-                quiz.source_file = source_file  # Only update if a new file is provided
+                resource.source_file = source_file  # Only update if a new file is provided
 
-            quiz.save()
-            return UpdateQuiz(success=True, errors=[])
-        except Quiz.DoesNotExist:
-            return UpdateQuiz(success=False, errors=["Quiz not found"])
+            resource.save()
+            return UpdateResource(success=True, errors=[])
+        except Resource.DoesNotExist:
+            return UpdateResource(success=False, errors=["Resource not found"])
         except Exception as e:
-            return UpdateQuiz(success=False, errors=[str(e)])
+            return UpdateResource(success=False, errors=[str(e)])
         
-class DeleteQuiz(graphene.Mutation):
+class DeleteResource(graphene.Mutation):
     success = graphene.Boolean()
     errors = graphene.List(graphene.String)
     
@@ -317,13 +317,13 @@ class DeleteQuiz(graphene.Mutation):
         
     def mutate(self,info,id):
         try:
-            quiz = Quiz.objects.get(pk=id)
-            quiz.delete()
-            return DeleteQuiz(success=True,errors=[])
-        except Quiz.DoesNotExist:
-            return DeleteQuiz(success=False,errors=['Quiz not found'])
+            resource = Resource.objects.get(pk=id)
+            resource.delete()
+            return DeleteResource(success=True,errors=[])
+        except Resource.DoesNotExist:
+            return DeleteResource(success=False,errors=['Resource not found'])
         except Exception as e:
-            return UpdateQuiz(success=False, errors=[str(e)])
+            return DeleteResource(success=False, errors=[str(e)])
     
         
         

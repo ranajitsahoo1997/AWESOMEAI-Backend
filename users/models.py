@@ -32,50 +32,50 @@ class ExtendedUser(AbstractUser):
 # Organisation Model
 # -------------------------------
 
-class Organisation(models.Model):
-    user = models.OneToOneField(ExtendedUser, on_delete=models.CASCADE, related_name='organisation_profile')
+# class Organisation(models.Model):
+#     user = models.OneToOneField(ExtendedUser, on_delete=models.CASCADE, related_name='organisation_profile')
 
-    name = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
+#     name = models.CharField(max_length=255)
+#     description = models.TextField(blank=True)
 
-    def __str__(self):
-        return self.name
+#     def __str__(self):
+#         return self.name
 
-# -------------------------------
-# Advisor Model
-# -------------------------------
+# # -------------------------------
+# # Advisor Model
+# # -------------------------------
 
-class Advisor(models.Model):
-    user = models.OneToOneField(ExtendedUser, on_delete=models.CASCADE, related_name='advisor_profile')
-    organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE, related_name='advisors')
+# class Advisor(models.Model):
+#     user = models.OneToOneField(ExtendedUser, on_delete=models.CASCADE, related_name='advisor_profile')
+#     organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE, related_name='advisors')
 
-    specialization = models.CharField(max_length=255, blank=True)
+#     specialization = models.CharField(max_length=255, blank=True)
 
-    def __str__(self):
-        return f"Advisor: {self.user.username} ({self.organisation.name})"
+#     def __str__(self):
+#         return f"Advisor: {self.user.username} ({self.organisation.name})"
 
-# -------------------------------
-# Student Model
-# -------------------------------
+# # -------------------------------
+# # Student Model
+# # -------------------------------
 
-class Student(models.Model):
-    user = models.OneToOneField(ExtendedUser, on_delete=models.CASCADE, related_name='student_profile')
-    organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE, related_name='students')
+# class Student(models.Model):
+#     user = models.OneToOneField(ExtendedUser, on_delete=models.CASCADE, related_name='student_profile')
+#     organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE, related_name='students')
 
-    enrollment_id = models.CharField(max_length=100, unique=True)
+#     enrollment_id = models.CharField(max_length=100, unique=True)
 
-    def __str__(self):
-        return f"Student: {self.user.username} ({self.organisation.name})"
+#     def __str__(self):
+#         return f"Student: {self.user.username} ({self.organisation.name})"
 
 # -------------------------------
 # Quiz Model
 # -------------------------------
-class Quiz(models.Model):
-    user = models.ForeignKey(ExtendedUser, on_delete=models.CASCADE, related_name="quizzes")  # one user → many quizzes
+class Resource(models.Model):
+    user = models.ForeignKey(ExtendedUser, on_delete=models.CASCADE, related_name="resources")  # one user → many quizzes
     name = models.CharField(max_length=255, blank=False, unique=True)
     description = models.CharField(max_length=3000, blank=False)
-    source_file = models.FileField(upload_to="quiz_files/", blank=True, null=False)
-    ecrypted_src_file = models.FileField(upload_to="quiz_files/encrypted/", blank=True, null=True)
+    source_file = models.FileField(upload_to="resource_files/", blank=True, null=False)
+    ecrypted_src_file = models.FileField(upload_to="resource_files/encrypted/", blank=True, null=True)
     started_at = models.DateTimeField(blank=True, null=True)
     ended_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)  # inserted at
@@ -85,26 +85,24 @@ class Quiz(models.Model):
         return self.name
 
 
-class Question(models.Model):
-    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name="questions")
-    text = models.TextField()
+
+    
+
+
+
+class Questions(models.Model):
+    question = models.TextField()
     level = models.CharField(max_length=255)
     mark = models.IntegerField()
-    topic= models.CharField(max_length=255)
+    topic = models.CharField(max_length=255)
+    resource = models.ForeignKey(Resource, on_delete=models.CASCADE, related_name="resource_questions")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    
 
     def __str__(self):
-        return self.text[:50] + "..." if len(self.text) > 50 else self.text
+        return self.question[:50] + "..." if len(self.question) > 50 else self.question
 
 
-class Option(models.Model):
-    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name="options")
-    text = models.CharField(max_length=1000)
-    is_correct = models.BooleanField(default=False)  # to mark the correct answer
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return self.text
     

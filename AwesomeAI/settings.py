@@ -84,7 +84,7 @@ WSGI_APPLICATION = 'AwesomeAI.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'awesomeai',
+        'NAME': 'awesome',
         'USER': 'postgres',
         'PASSWORD': 'postgres',
         'HOST': 'localhost',

@@ -1,61 +1,62 @@
 import graphene
 from graphql_auth.schema import UserQuery, MeQuery
 from graphql_auth import mutations
-from .mutations import SendPasswordResetEmail, ResetPassword, Register,ActivateAccount,CreateQuiz,QuizType,UpdateQuiz,DeleteQuiz
-# from .queries import QuizType
-from.models import Quiz,Question
+from .mutations import SendPasswordResetEmail, ResetPassword, Register,ActivateAccount,CreateResource,UpdateResource,DeleteResource,ResourceType
+# from .queries import ResourceType
+from.models import Resource,Questions
 from django.db.models import Q
-from .utils.generate_question_with_resource import generateQuestionFromResource
+# from .utils.generate_question_with_resource import generateQuestionFromResource
+from .utils.generateQuestionsWithResource import generateQuestionFromResource
 from graphene_django.types import DjangoObjectType
 
-class QuestionType(DjangoObjectType):
+class QuestionsType(DjangoObjectType):
     class Meta:
-        model = Question
+        model = Questions
         fields = "__all__"
 
 class QuestionQuery(graphene.ObjectType):
-    create_question_with_resource = graphene.List(QuestionType,resId=graphene.ID(required=True))
+    create_question_with_resource = graphene.List(QuestionsType,resId=graphene.ID(required=True))
     
     def resolve_create_question_with_resource(root,info,resId):
-        quiz = Quiz.objects.get(pk=resId)
-        data = generateQuestionFromResource(quiz)
+        resource = Resource.objects.get(pk=resId)
+        data = generateQuestionFromResource(resource)
         for item in data:
             level = item.get('level', '').strip()
             mark = int(item.get('mark', 0))  # convert to int if needed
-            text = item.get('questions', '').strip()
+            question = item.get('question', '').strip()
             topic = item.get('topic', '').strip()
-            question = Question.objects.create(
-                text=text,
+            quests = Questions.objects.create(
+                question=question,
                 level=level,
                 mark=mark,
                 topic=topic,
-                quiz=quiz
+                resource=resource
             )
-            question.save()
-        questions = Question.objects.filter(quiz_id=quiz.id).distinct()
+            quests.save()
+        questions = Questions.objects.filter(resource_id=resource.id).distinct()
         return questions
         
 
 
 
 
-class QuizQuery(graphene.ObjectType):
-    all_quizzes = graphene.List(QuizType)
-    get_quiz_by_id = graphene.Field(QuizType,
+class ResourceQuery(graphene.ObjectType):
+    all_resources = graphene.List(ResourceType)
+    get_resource_by_id = graphene.Field(ResourceType,
         id=graphene.ID(required=True))
-    search_quiz_by_name = graphene.List(QuizType,searchText=graphene.String(required=True))
+    search_resource_by_name = graphene.List(ResourceType,searchText=graphene.String(required=True))
     
     
-    def resolve_all_quizzes(root, info):
-        return Quiz.objects.order_by("-updated_at")
-    def resolve_get_quiz_by_id(root,info,id):
-        return Quiz.objects.get(pk=id)
-    def resolve_search_quiz_by_name(root,info,searchText):
-        quizzes = Quiz.objects.filter(
+    def resolve_all_resources(root, info):
+        return Resource.objects.order_by("-updated_at")
+    def resolve_get_resource_by_id(root,info,id):
+        return Resource.objects.get(pk=id)
+    def resolve_search_resource_by_name(root,info,searchText):
+        resources = Resource.objects.filter(
              Q(name__icontains=searchText) |
              Q(description__icontains=searchText)
         ).order_by('-created_at')
-        return list(quizzes)
+        return list(resources)
     
         
 
@@ -76,11 +77,11 @@ class AuthMutaions(graphene.ObjectType):
     verify_token = mutations.VerifyToken.Field()
     
 
-class Query(QuestionQuery,QuizQuery,UserQuery, MeQuery, graphene.ObjectType):
+class Query(QuestionQuery,ResourceQuery,UserQuery, MeQuery, graphene.ObjectType):
     pass
 class Mutation(AuthMutaions, graphene.ObjectType):
-    createQuiz = CreateQuiz.Field()
-    updateQuiz = UpdateQuiz.Field()
-    deleteQuiz = DeleteQuiz.Field()
+    createResource = CreateResource.Field()
+    updateResource = UpdateResource.Field()
+    deleteResource = DeleteResource.Field()
 
 schema = graphene.Schema(query=Query, mutation=Mutation)
