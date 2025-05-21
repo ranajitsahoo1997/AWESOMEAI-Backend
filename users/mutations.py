@@ -14,7 +14,6 @@ from django.utils.encoding import force_bytes
 from .utils.email import send_verification_code_email
 from django.utils import timezone
 from validate_email import validate_email
-from graphene_django.types import DjangoObjectType
 from users.models import Resource
 from graphene_file_upload.scalars import Upload
 from.models import ExtendedUser
@@ -24,6 +23,7 @@ from .utils.create_digital_signed_pdf import sign_create_for_pdf
 from.utils.ChangeExtensionTextToPDF import txt_to_pdf
 from django.core.files import File
 import os
+from .modelType import ResourceType
 
 # for encrypt a pdf
 from django.core.files.base import ContentFile
@@ -207,20 +207,7 @@ class ActivateAccount(graphene.Mutation):
         return ActivateAccount(success=True, errors=[])
         
   
-class ResourceType(DjangoObjectType):
-    class Meta:
-        model = Resource
-        fields = "__all__"
-        
-    source_file_url= graphene.String()
-    ecrypted_src_file_url = graphene.String()
-    def resolve_source_file_url(self, info):
-        if self.source_file:
-           return info.context.build_absolute_uri(self.source_file.url)
-        return None
-    def resolve_ecrypted_src_file_url(self,info):
-        if self.ecrypted_src_file:
-            return info.context.build_absolute_uri(self.ecrypted_src_file.url)
+
         
 class CreateResource(graphene.Mutation):
     success = graphene.Boolean()

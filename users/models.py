@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
 
 # Create your models here.
 
@@ -28,48 +29,7 @@ class ExtendedUser(AbstractUser):
     EMAIL_FIELD = 'email'
     
     
-# -------------------------------
-# Organisation Model
-# -------------------------------
 
-# class Organisation(models.Model):
-#     user = models.OneToOneField(ExtendedUser, on_delete=models.CASCADE, related_name='organisation_profile')
-
-#     name = models.CharField(max_length=255)
-#     description = models.TextField(blank=True)
-
-#     def __str__(self):
-#         return self.name
-
-# # -------------------------------
-# # Advisor Model
-# # -------------------------------
-
-# class Advisor(models.Model):
-#     user = models.OneToOneField(ExtendedUser, on_delete=models.CASCADE, related_name='advisor_profile')
-#     organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE, related_name='advisors')
-
-#     specialization = models.CharField(max_length=255, blank=True)
-
-#     def __str__(self):
-#         return f"Advisor: {self.user.username} ({self.organisation.name})"
-
-# # -------------------------------
-# # Student Model
-# # -------------------------------
-
-# class Student(models.Model):
-#     user = models.OneToOneField(ExtendedUser, on_delete=models.CASCADE, related_name='student_profile')
-#     organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE, related_name='students')
-
-#     enrollment_id = models.CharField(max_length=100, unique=True)
-
-#     def __str__(self):
-#         return f"Student: {self.user.username} ({self.organisation.name})"
-
-# -------------------------------
-# Quiz Model
-# -------------------------------
 class Resource(models.Model):
     user = models.ForeignKey(ExtendedUser, on_delete=models.CASCADE, related_name="resources")  # one user → many quizzes
     name = models.CharField(max_length=255, blank=False, unique=True)
@@ -96,6 +56,7 @@ class Questions(models.Model):
     mark = models.IntegerField()
     topic = models.CharField(max_length=255)
     resource = models.ForeignKey(Resource, on_delete=models.CASCADE, related_name="resource_questions")
+    public = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -105,4 +66,20 @@ class Questions(models.Model):
         return self.question[:50] + "..." if len(self.question) > 50 else self.question
 
 
+class Subscription(models.Model):
+    student = models.ForeignKey(ExtendedUser,on_delete=models.CASCADE,related_name="subscriptions",limit_choices_to={"is_student": True})
+    mentor = models.ForeignKey(ExtendedUser,on_delete=models.CASCADE,related_name="subscribers",limit_choices_to={"is_mentor": True})
+    subscribed_at = models.DateTimeField(auto_now_add=True)
     
+    def clean(self):
+        if self.student == self.mentor:
+            raise ValidationError("A user cannot subscribe to themselves.")
+        if not self.student.is_student:
+            raise ValidationError("Only student users can subscribe.")
+        if not self.mentor.is_mentor:
+            raise ValidationError("You can only subscribe to mentor users.")
+        
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+        
