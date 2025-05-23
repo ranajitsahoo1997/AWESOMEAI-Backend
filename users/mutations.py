@@ -16,7 +16,7 @@ from django.utils import timezone
 from validate_email import validate_email
 from users.models import Resource
 from graphene_file_upload.scalars import Upload
-from.models import ExtendedUser
+from.models import ExtendedUser,Subscription
 import base64
 from .utils.sign_creation_for_pdf import sign_create_for_pdf
 from .utils.create_digital_signed_pdf import sign_create_for_pdf
@@ -24,6 +24,7 @@ from.utils.ChangeExtensionTextToPDF import txt_to_pdf
 from django.core.files import File
 import os
 from .modelType import ResourceType
+from graphql_relay import from_global_id
 
 # for encrypt a pdf
 from django.core.files.base import ContentFile
@@ -311,6 +312,30 @@ class DeleteResource(graphene.Mutation):
             return DeleteResource(success=False,errors=['Resource not found'])
         except Exception as e:
             return DeleteResource(success=False, errors=[str(e)])
+        
+class SubscribeMentor(graphene.Mutation):
+    class Arguments:
+        mentor_id = graphene.Int(required=True)
+        student_id = graphene.ID(required=True)
+
+    success = graphene.Boolean()
+    errors = graphene.List(graphene.String)
+
+    def mutate(self, info, mentor_id, student_id):
+        try:
+            _, student_db_id = from_global_id(student_id)
+            exists = Subscription.objects.filter(mentor_id=mentor_id,student_id=student_db_id).exists()
+            if exists:
+                return SubscribeMentor(success=False, errors=["You have already Subscribed"])
+            else:
+                student = ExtendedUser.objects.get(id=student_db_id)
+                mentor = ExtendedUser.objects.get(id=mentor_id)
+                Subscription.objects.create(student=student, mentor=mentor)
+                return SubscribeMentor(success=True, errors=[])
+        except Exception as e:
+            return SubscribeMentor(success=False, errors=[str(e)])
+        
+
     
         
         

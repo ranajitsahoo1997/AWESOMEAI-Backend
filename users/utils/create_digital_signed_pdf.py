@@ -12,6 +12,7 @@ from asn1crypto import x509, pem
 from io import BytesIO
 from pyhanko import stamp
 from pyhanko.pdf_utils import text, images
+from PyPDF2 import PdfMerger
 
 import os
 pfx_path = "/home/ranajit/Desktop/RedIntegro/Graphql/backend-graphql-django/certs/user.pfx"
@@ -37,6 +38,21 @@ signer = signers.SimpleSigner.load_pkcs12(
             
         ) 
 print(f"✅ Signing certificate: {signer.signing_cert.subject.human_friendly}")
+
+
+def add_signed_pdf(input_pdf_path):
+    singed_pdf_path = "/home/ranajit/Desktop/RedIntegro/Graphql/backend-graphql-django/media/resource_files/signed_3.pdf"
+    if os.path.exists(singed_pdf_path):
+        merger = PdfMerger()
+        merger.append(singed_pdf_path)
+        merger.append(input_pdf_path)
+        merger.write(input_pdf_path)
+        merger.close()
+    return input_pdf_path
+    
+
+
+
 def sign_create_for_pdf(input_pdf_path: str,output_pdf_path: str):
     # Set up a timestamping client to fetch timestamps tokens
     timestamper = timestamps.HTTPTimeStamper(
@@ -92,20 +108,22 @@ def sign_create_for_pdf(input_pdf_path: str,output_pdf_path: str):
     y2 = y1 + box_height
 
     sig_box = (x1, y1, x2, y2)
-    
+    input_pdf_path = add_signed_pdf(input_pdf_path)
     with open(input_pdf_path,'rb') as inf:
         w = IncrementalPdfFileWriter(inf)
         fields.append_signature_field(
             w,sig_field_spec=fields.SigFieldSpec(
-                "Signature1",box=sig_box,
+                "Signature1",box=(59.5, 10, 535.5, 252.6),
             )
         )
         pdf_signer = signers.PdfSigner(
             signature_meta= signature_meta,
             signer=signer,
             stamp_style= stamp.TextStampStyle(
-                border_width= 2,
-                stamp_text= 'Digital Signature!! \n Prepared by: Redintegro\nSigned by: %(signer)s\nTime: %(ts)s',
+                border_width= 1,
+                stamp_text= 'Digital Signature!!\nPrepared by: Redintegro Consulting Solutions LLP\nSigned by: %(signer)s\nTime: %(ts)s',
+                # stamp_text= 'Digital Signature!!\nPrepared by: Redintegro Consulting Solutions LLP\nSigned by: Ranajit Thomson <ranajitsahoo@redintegro.com>\nTime: %(ts)s',
+                
                 background= images.PdfImage("/home/ranajit/Desktop/RedIntegro/Graphql/backend-graphql-django/media/images/job logo.png"),
                 background_opacity=0.4
             )   

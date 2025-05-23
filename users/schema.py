@@ -1,8 +1,8 @@
 import graphene
 from graphql_auth.schema import UserQuery, MeQuery
 from graphql_auth import mutations
-from .mutations import SendPasswordResetEmail, ResetPassword, Register,ActivateAccount,CreateResource,UpdateResource,DeleteResource
-from .queries import QuestionQuery,ResourceQuery,ExtendedUserQuery
+from .mutations import SendPasswordResetEmail, ResetPassword, Register,ActivateAccount,CreateResource,UpdateResource,DeleteResource,SubscribeMentor
+from .queries import QuestionQuery,ResourceQuery,ExtendedUserQuery,SubscriptionQuery
 
 
 
@@ -25,11 +25,12 @@ class AuthMutaions(graphene.ObjectType):
     verify_token = mutations.VerifyToken.Field()
     
 
-class Query(ExtendedUserQuery,QuestionQuery,ResourceQuery,UserQuery, MeQuery, graphene.ObjectType):
+class Query(SubscriptionQuery,ExtendedUserQuery,QuestionQuery,ResourceQuery,UserQuery, MeQuery, graphene.ObjectType):
     pass
 class Mutation(AuthMutaions, graphene.ObjectType):
     createResource = CreateResource.Field()
     updateResource = UpdateResource.Field()
     deleteResource = DeleteResource.Field()
+    subscribeMentor = SubscribeMentor.Field()
 
 schema = graphene.Schema(query=Query, mutation=Mutation)
