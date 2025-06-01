@@ -2,7 +2,7 @@ from PyPDF2 import PdfReader
 from langchain_community.llms.ollama import Ollama
 from langchain_core.runnables import Runnable
 from langchain_core.prompts import PromptTemplate
-
+from celery import shared_task
 
 def raw_text_to_json(text):
     text_splits = text.split("\n")
@@ -19,18 +19,19 @@ def raw_text_to_json(text):
     
     return data_gen
 
-def generateQuestionFromResource(resource):
+@shared_task
+def generateQuestionFromResource(resource,froms,to):
     print("welcome to Generative AI")
     pdfreader = PdfReader(f"./media/{resource.source_file}")
     
     pno = 0
     all_docs = []
     for page in pdfreader.pages:
-        if  pno<6:
+        if  pno>=froms and pno<=to:
             page_content  = page.extract_text()
             all_docs.append(page_content)
         pno+=1
-        
+    print(all_docs)
     full_text = "\n".join(all_docs)
     
     prompt = PromptTemplate.from_template("""
@@ -51,7 +52,7 @@ def generateQuestionFromResource(resource):
                                             - Output ONLY the questions.
                                             - Do NOT include headings, explanations, or formatting.
                                             - Each long-answer question should be on a new line.
-                                            -Ensure that question must be long answer type and not short answer type.
+                                            -Ensure that question must be 10 MARKS long answer type and not short answer type.
                                             - The questions should be clear and unambiguous.
 
                                             Now generate the possible long-answer questions based on the content provided:

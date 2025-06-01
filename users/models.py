@@ -34,6 +34,9 @@ class Resource(models.Model):
     user = models.ForeignKey(ExtendedUser, on_delete=models.CASCADE, related_name="resources")  # one user → many quizzes
     name = models.CharField(max_length=255, blank=False, unique=True)
     description = models.CharField(max_length=3000, blank=False)
+    level = models.CharField(max_length=255)
+    mark = models.IntegerField(default=0)
+    topic = models.CharField(max_length=255)
     source_file = models.FileField(upload_to="resource_files/", blank=True, null=False)
     ecrypted_src_file = models.FileField(upload_to="resource_files/encrypted/", blank=True, null=True)
     started_at = models.DateTimeField(blank=True, null=True)
@@ -64,6 +67,20 @@ class Questions(models.Model):
 
     def __str__(self):
         return self.question[:50] + "..." if len(self.question) > 50 else self.question
+    
+class MyQuestions(models.Model):
+    question_text = models.TextField(blank=False,null=False)
+    question = models.ForeignKey(Questions,on_delete=models.CASCADE,related_name="my_questions")
+    student = models.ForeignKey(ExtendedUser,on_delete=models.CASCADE,related_name="student",limit_choices_to={"is_student": True})
+    status = models.CharField(max_length=100,default="Enrolled")
+    marks = models.IntegerField(default=10)
+    started_at = models.DateTimeField(auto_now_add=True)
+    ended_at = models.DateTimeField(null=True, blank=True,default=None)
+    is_open = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    
 
 
 class Subscription(models.Model):
@@ -82,4 +99,30 @@ class Subscription(models.Model):
     def save(self, *args, **kwargs):
         self.clean()
         super().save(*args, **kwargs)
-        
+
+class MyQuestionSubmission(models.Model):
+    my_question = models.ForeignKey(MyQuestions, on_delete=models.CASCADE,related_name="submission")
+    submitted_answer = models.TextField(blank=False,null=False)
+    score = models.IntegerField(default=0)
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+class SubmissionResult(models.Model):
+    my_question_submission = models.ForeignKey(MyQuestionSubmission, on_delete=models.CASCADE, related_name="result")
+    question = models.CharField(max_length=1000,blank=False,null=False)
+    marks = models.IntegerField(default=0)
+    answer = models.TextField(blank=False,null=False)
+    expected_length = models.IntegerField(default=0)
+    actual_length = models.IntegerField(default=0)
+    similarity_score = models.FloatField(default=0.0)
+    llm_evaluation_score = models.IntegerField(default=0)
+    final_score = models.IntegerField(default=0)
+    justification = models.TextField(blank=True, null=True)
+    missing_elements = models.TextField(blank=True, null=True)
+    evaluated_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"SubmissionResult for {self.my_question_submission.my_question.question_text[:50]} - Score: {self.final_score}"
+    
+    

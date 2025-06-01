@@ -153,3 +153,26 @@ Now you have a .pfx file signed by a CA (even though it's your own CA). You can 
 pip install PyPDF2 langchain langchain-community
 
  pip install reportlab for convert text to pdf
+ 
+ pip install scikit-learn
+
+
+
+ new certificate
+ cd AwesomeAI/certs2222/
+
+ openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem \
+   -days 365 -nodes -config signing_cert.cnf
+openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem   -days 1825 -nodes -config signing_cert.cnf
+Generating a RSA private key
+....................................+++++
+..............................+++++
+writing new private key to 'key.pem'
+-----
+
+openssl pkcs12 -export -out signer.pfx -inkey key.pem -in cert.pem -passout pass:123456
+openssl pkcs12 -export -out signer.pfx -inkey key.pem -in cert.pem -passout pass:@rR64410007751
+
+
+
+pip install celery redis

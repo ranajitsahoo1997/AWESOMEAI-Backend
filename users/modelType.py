@@ -1,5 +1,5 @@
 from graphene_django.types import DjangoObjectType
-from.models import ExtendedUser,Resource,Questions
+from.models import ExtendedUser,Resource,Questions,MyQuestions,MyQuestionSubmission,SubmissionResult
 import graphene
 
 class ExtendedUserType(DjangoObjectType):
@@ -25,4 +25,16 @@ class ResourceType(DjangoObjectType):
 class QuestionsType(DjangoObjectType):
     class Meta:
         model = Questions
+        fields = "__all__"
+class MyQuestionsType(DjangoObjectType):
+    class Meta:
+        model = MyQuestions
+        fields = "__all__"
+class MyQuestionSubmissionType(DjangoObjectType):
+    class Meta:
+        model = MyQuestionSubmission
+        fields = "__all__"
+class SubmissionResultType(DjangoObjectType):
+    class Meta:
+        model = SubmissionResult
         fields = "__all__"

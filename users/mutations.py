@@ -16,18 +16,21 @@ from django.utils import timezone
 from validate_email import validate_email
 from users.models import Resource
 from graphene_file_upload.scalars import Upload
-from.models import ExtendedUser,Subscription
+from.models import ExtendedUser,Subscription,Questions,MyQuestions,MyQuestionSubmission,SubmissionResult
 import base64
-from .utils.sign_creation_for_pdf import sign_create_for_pdf
+# from .utils.sign_creation_for_pdf import sign_create_for_pdf
 from .utils.create_digital_signed_pdf import sign_create_for_pdf
+from .utils.createDigitalsignedPDF import PDFSigner
 from.utils.ChangeExtensionTextToPDF import txt_to_pdf
 from django.core.files import File
 import os
-from .modelType import ResourceType
+from .modelType import ResourceType,MyQuestionsType,MyQuestionSubmissionType,SubmissionResultType
 from graphql_relay import from_global_id
 
 # for encrypt a pdf
 from django.core.files.base import ContentFile
+from django.utils import timezone
+from .utils.generateAnswerForQuestion import AnswerEvaluator,evaluate_answer_task
 
 # end
 
@@ -218,12 +221,15 @@ class CreateResource(graphene.Mutation):
     class Arguments:
         name = graphene.String(required=True)
         description = graphene.String(required=True)
+        level = graphene.String(required=True)
+        marks = graphene.Int(required=True)
+        topic = graphene.String(required=True)
         source_file = Upload(required=True)
         started_at = graphene.DateTime(required=False)
         ended_at = graphene.DateTime(required=False)
         id=graphene.ID()
         
-    def mutate(self, info, name, description, source_file=None, started_at=None, ended_at=None,id=None):
+    def mutate(self, info, name, description,level,marks,topic, source_file=None, started_at=None, ended_at=None,id=None):
         
         id=base64.b64decode(id).decode('utf-8')
         userid = id.split(":")
@@ -234,6 +240,9 @@ class CreateResource(graphene.Mutation):
         resource = Resource.objects.create(
             user=user,
             name=name,
+            level=level,
+            mark=marks,
+            topic=topic,
             description=description,
             source_file=source_file,
             started_at=started_at,
@@ -256,6 +265,9 @@ class CreateResource(graphene.Mutation):
             input_path = resource.source_file.path
         print(input_path)
         ## create signed pdf here
+        pdfsigner = PDFSigner()
+        # output_buffer = pdfsigner.sign_pdf(input_pdf_path=input_path,output_pdf_path="signed_file5.pdf")
+        
         output_buffer = sign_create_for_pdf(input_pdf_path=input_path,output_pdf_path="signed_file5.pdf")
         
         
@@ -335,9 +347,172 @@ class SubscribeMentor(graphene.Mutation):
         except Exception as e:
             return SubscribeMentor(success=False, errors=[str(e)])
         
-
+class CreateMyQuestions(graphene.Mutation):
+    success = graphene.Boolean()
+    errors = graphene.List(graphene.String)
+    my_question = graphene.Field(MyQuestionsType)
+    
+    class Arguments:
+        question_id = graphene.Int(required=True)
+        student_id = graphene.ID(required=True)
+    def mutate(self,info,question_id,student_id):
+        _, student_db_id = from_global_id(student_id)
+        student = ExtendedUser.objects.get(id=student_db_id)
+        question = Questions.objects.get(id=question_id)
+        exists = MyQuestions.objects.filter(question_id=question_id,student_id=student_db_id).exists()
+        print(exists)
+        if exists:
+            my_question = MyQuestions.objects.get(question_id=question_id,student_id=student_db_id)
+            my_question.save()
+            return CreateMyQuestions(success=True,errors=[],my_question=my_question)
+        else:
+            my_question = MyQuestions.objects.create(
+                question_text=question.question,
+                question=question,
+                student=student,
+                is_open=True
+                
+            )
+            my_question.save()
+            return CreateMyQuestions(success=True,errors=[],my_question=my_question)
     
         
+class UpdateMyQuestionsStatus(graphene.Mutation):
+    success = graphene.Boolean()
+    errors = graphene.List(graphene.String)
+    
+    class Arguments:
+        my_question_id = graphene.ID(required=True)
+        question_text = graphene.String(required=True)
+        is_open = graphene.Boolean(required=True)
+
+    def mutate(self, info, my_question_id, question_text, is_open):
+        try:
+            my_question = MyQuestions.objects.get(pk=my_question_id)
+            my_question.question_text = question_text
+            my_question.is_open = is_open
+            my_question.status = "Started" 
+            my_question.started_at = timezone.now() 
+            my_question.save()
+            return UpdateMyQuestionsStatus(success=True, errors=[])
+        except MyQuestions.DoesNotExist:
+            return UpdateMyQuestionsStatus(success=False, errors=["MyQuestion not found"])
+        except Exception as e:
+            return UpdateMyQuestionsStatus(success=False, errors=[str(e)])  
         
+class CreateMyQuestionSubmission(graphene.Mutation):
+    success = graphene.Boolean()
+    errors = graphene.List(graphene.String)
+    my_question_submission = graphene.Field(MyQuestionSubmissionType)
+    class Arguments:
+        my_question_id = graphene.ID(required=True)
+        answer = graphene.String(required = True)
+        
+    def mutate(self,info,my_question_id,answer):
+        try:
+            
+            exists = MyQuestionSubmission.objects.filter(my_question_id=my_question_id).exists()
+            if exists:
+                return CreateMyQuestionSubmission(success=False, errors=["Submission already exists for this question"])
+            else:
+                my_question = MyQuestions.objects.get(pk=my_question_id)
+                question = my_question.question
+                my_questions_submission = MyQuestionSubmission.objects.create(
+                    my_question=my_question,
+                    submitted_answer=answer
+                )
+                my_question.ended_at = timezone.now()
+                my_question.status = "Completed"
+                my_question.is_open = False
+                my_question.save()
+                my_questions_submission.save()
+                print("Questions==>",question)
+                print(question.mark)
+                print("Answer==>",my_questions_submission.submitted_answer)
+                result = evaluate_answer_task(question_type="Descriptive",question=my_question.question_text,answer=my_questions_submission.submitted_answer,topic=question.topic,marks=question.mark,difficulty=question.level)
+                print(result['question'])
+                print(result['answer'])
+                print(result['marks'])
+                print(result['actual_length'])
+                print(result['similarity_score'])
+                print(result['expected_length'])
+                print(result['llm_evaluation']['score'])
+                print(result['final_score'])
+                print(result['llm_evaluation']['justification'])
+                print(result['llm_evaluation']['missing'])
+                
+                # Assuming you have a function to generate the answer sheet
+                submission_result = SubmissionResult.objects.create(
+                    my_question_submission=my_questions_submission,
+                    question=result['question'],
+                    answer=result['answer'],
+                    marks=result['marks'],  # You can set this based on your logic
+                    expected_length=result['expected_length'],  # Set as needed
+                    actual_length=result['actual_length'],
+                    similarity_score=result['similarity_score'],  # Set as needed
+                    llm_evaluation_score=result['llm_evaluation']['score'],  # Set as needed
+                    final_score=result['final_score'],  # Set as needed
+                    justification=result['llm_evaluation']['justification'],  # Set as needed
+                    missing_elements=result['llm_evaluation']['missing']  # Set as needed
+                )
+                submission_result.save()
+                return CreateMyQuestionSubmission(success=True, errors=[], my_question_submission=my_questions_submission)
+        except MyQuestions.DoesNotExist:
+            return CreateMyQuestionSubmission(success=False, errors=["MyQuestion not found"])
+        except Exception as e:
+            return CreateMyQuestionSubmission(success=False, errors=[str(e)])  
+        
+class GenerateAnswerSheet(graphene.Mutation):
+    success = graphene.Boolean()
+    errors = graphene.List(graphene.String)
+    submission_result = graphene.Field(SubmissionResultType)
+    
+    class Arguments:
+        my_question_id = graphene.ID(required=True)
+        my_question_submission_id = graphene.ID(required=True)
+    def mutate(self, info, my_question_id, my_question_submission_id):
+        try:
+            my_question = MyQuestions.objects.get(pk=my_question_id)
+            my_question_submission = MyQuestionSubmission.objects.get(pk=my_question_submission_id)
+            
+            if not my_question_submission:
+                return GenerateAnswerSheet(success=False, errors=["MyQuestionSubmission not found"])
+            
+            answerEvaluator = AnswerEvaluator()
+            result = answerEvaluator.evaluate_answer(question_type="Descriptive",question=my_question.question_text,answer=my_question_submission.submitted_answer,topic="JAVA Language",marks=my_question.marks,difficulty="Hard")
+            print(result['question'])
+            print(result['answer'])
+            print(result['marks'])
+            print(result['actual_length'])
+            print(result['similarity_score'])
+            print(result['expected_length'])
+            print(result['llm_evaluation']['score'])
+            print(result['final_score'])
+            print(result['llm_evaluation']['justification'])
+            print(result['llm_evaluation']['missing'])
+            
+            # Assuming you have a function to generate the answer sheet
+            submission_result = SubmissionResult.objects.create(
+                my_question_submission=my_question_submission,
+                question=result['question'],
+                answer=result['answer'],
+                marks=result['marks'],  # You can set this based on your logic
+                expected_length=result['expected_length'],  # Set as needed
+                actual_length=result['actual_length'],
+                similarity_score=result['similarity_score'],  # Set as needed
+                llm_evaluation_score=result['llm_evaluation']['score'],  # Set as needed
+                final_score=result['final_score'],  # Set as needed
+                justification=result['llm_evaluation']['justification'],  # Set as needed
+                missing_elements=result['llm_evaluation']['missing']  # Set as needed
+            )
+            submission_result.save()
+            return GenerateAnswerSheet(success=True, errors=[], submission_result=submission_result)
+        except MyQuestions.DoesNotExist:
+            return GenerateAnswerSheet(success=False, errors=["MyQuestion not found"])
+        except MyQuestionSubmission.DoesNotExist:
+            return GenerateAnswerSheet(success=False, errors=["MyQuestionSubmission not found"])
+        except Exception as e:
+            return GenerateAnswerSheet(success=False, errors=[str(e)])
+    
         
         

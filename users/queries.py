@@ -1,28 +1,39 @@
 import graphene
 
 from .utils.generateQuestionsWithResource import generateQuestionFromResource
-from .modelType import ExtendedUserType,ResourceType,QuestionsType
-from.models import Resource,Questions,ExtendedUser,Subscription
+from .modelType import ExtendedUserType,ResourceType,QuestionsType,SubmissionResultType,MyQuestionsType,MyQuestionSubmissionType
+from.models import Resource,Questions,ExtendedUser,Subscription,MyQuestionSubmission,MyQuestions,SubmissionResult
 from django.db.models import Q
 from graphql_relay import from_global_id
+import re
 
 class QuestionQuery(graphene.ObjectType):
-    create_question_with_resource = graphene.List(QuestionsType,resId=graphene.ID(required=True))
+    create_question_with_resource = graphene.List(QuestionsType,resId=graphene.ID(required=True),froms=graphene.Int(required=True),to=graphene.Int(required=True))
     fetch_questions_for_resource_id = graphene.List(QuestionsType,resId=graphene.ID(required=True))
+    fetch_students_for_resource_id = graphene.List(ExtendedUserType,resId=graphene.ID(required=True))
     
-    def resolve_create_question_with_resource(root,info,resId):
+    
+    def resolve_fetch_students_for_resource_id(root,info,resId):
         resource = Resource.objects.get(pk=resId)
-        data = generateQuestionFromResource(resource)
+        questionids = Questions.objects.filter(resource_id = resource.id).values_list('id', flat=True).distinct()
+        student_ids = MyQuestions.objects.filter(question_id__in=questionids).values_list('student_id', flat=True).distinct()
+        print("student_ids",student_ids)
+        students = ExtendedUser.objects.filter(id__in=student_ids, is_student=True)
+        return students
+    
+    def resolve_create_question_with_resource(root,info,resId,froms,to):
+        resource = Resource.objects.get(pk=resId)
+        data = generateQuestionFromResource(resource,froms,to)
         for item in data:
-            level = item.get('level', '').strip()
-            mark = int(item.get('mark', 0))  # convert to int if needed
+            
             question = item.get('question', '').strip()
-            topic = item.get('topic', '').strip()
+            question = re.sub(r'^\d+\.\s*', '', question)
+            
             quests = Questions.objects.create(
                 question=question,
-                level=level,
-                mark=mark,
-                topic=topic,
+                level=resource.level,
+                mark=resource.mark,
+                topic=resource.topic,
                 resource=resource
             )
             quests.save()
@@ -32,9 +43,45 @@ class QuestionQuery(graphene.ObjectType):
         resource = Resource.objects.get(pk=resId)
         questions = Questions.objects.filter(resource_id=resId).distinct()
         return questions
-        
 
 
+
+    
+    
+
+class MyQuestionsQuery(graphene.ObjectType):
+    fetch_my_questions_for_resource = graphene.List(MyQuestionsType,resId=graphene.ID(required=True),student_id=graphene.ID(required=True))
+    
+    def resolve_fetch_my_questions_for_resource(root,info,resId,student_id):
+        print(student_id)
+        # _,student_db_id = from_global_id(student_id)
+        questions = Questions.objects.filter(resource_id=resId)
+        my_questions = MyQuestions.objects.filter(question__in=questions, student_id=student_id).distinct()
+        return my_questions
+class MyQuestionsSubmissionQuery(graphene.ObjectType):
+    get_my_question_submission_by_my_question =  graphene.Field(MyQuestionSubmissionType,my_question_id = graphene.ID(required=True))
+    def resolve_get_my_question_submission_by_my_question(root,info,my_question_id):
+        my_question = MyQuestions.objects.get(pk=my_question_id)
+        my_question_submission = MyQuestionSubmission.objects.get(my_question=my_question)
+        return my_question_submission
+    
+class SubmissionResultQuery(graphene.ObjectType):
+    get_result_for_submission = graphene.Field(SubmissionResultType,submission_id=graphene.ID(required=True))
+    
+    def resolve_get_result_for_submission(root,info,submission_id):
+        submission = MyQuestionSubmission.objects.get(pk=submission_id)
+        result = SubmissionResult.objects.get(my_question_submission=submission)
+        return result
+    get_submission_result_from_my_question = graphene.Field(SubmissionResultType,my_question_id = graphene.ID(required=True))
+    
+    def resolve_get_submission_result_from_my_question(root,info,my_question_id):
+        my_question = MyQuestions.objects.get(pk=my_question_id)
+        my_question_submission = MyQuestionSubmission.objects.filter(my_question=my_question).first()
+        submission_result = SubmissionResult.objects.filter(my_question_submission=my_question_submission).first()
+        if submission_result:
+            return submission_result
+        return None
+    
 
 
 class ResourceQuery(graphene.ObjectType):

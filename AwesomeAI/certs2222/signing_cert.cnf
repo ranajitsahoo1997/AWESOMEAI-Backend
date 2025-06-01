@@ -1,0 +1,18 @@
+[ req ]
+distinguished_name = req_distinguished_name
+x509_extensions = v3_req
+prompt = no
+
+[ req_distinguished_name ]
+C  = IN
+ST = Karnataka
+L  = Bangalore
+O  = RedIntegro
+OU = Development
+CN = Ranajit Sahoo
+emailAddress = ranajitsahoo@redintegro.com
+
+[ v3_req ]
+keyUsage = critical, digitalSignature, nonRepudiation
+extendedKeyUsage = emailProtection
+subjectAltName = email:copy
