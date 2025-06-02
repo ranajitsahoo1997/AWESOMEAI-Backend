@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# Django specific
+db.sqlite3
+*.log
+*.pot
+*.pyc
+*.mo
+*.swp
+*.swo
+*.sqlite3
+
+# Environment
+.env
+venv/
+ENV/
+env/
+.venv/
+*.env
+
+# VS Code
+.vscode/
+
+# PyCharm
+.idea/
+
+# MacOS
+.DS_Store
+
+# Migrations (optional – if you don't want to version them)
+**/migrations/*.pyc
+**/migrations/*.py
+!*/migrations/__init__.py
+
+# Static files (optional if using collectstatic)
+staticfiles/
+static/
+
+# Media files (optional)
+media/
+
+# Secrets
+redintegro.com/
