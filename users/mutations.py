@@ -31,6 +31,7 @@ from graphql_relay import from_global_id
 from django.core.files.base import ContentFile
 from django.utils import timezone
 from .utils.generateAnswerForQuestion import AnswerEvaluator,evaluate_answer_task
+from .utils.generateAnswer import evaluate_answer_taskss
 
 # end
 
@@ -429,7 +430,7 @@ class CreateMyQuestionSubmission(graphene.Mutation):
                 print("Questions==>",question)
                 print(question.mark)
                 print("Answer==>",my_questions_submission.submitted_answer)
-                result = evaluate_answer_task(question_type="Descriptive",question=my_question.question_text,answer=my_questions_submission.submitted_answer,topic=question.topic,marks=question.mark,difficulty=question.level)
+                result = evaluate_answer_taskss(question_type="Descriptive",question=my_question.question_text,answer=my_questions_submission.submitted_answer,topic=question.topic,marks=question.mark,difficulty=question.level)
                 print(result['question'])
                 print(result['answer'])
                 print(result['marks'])
